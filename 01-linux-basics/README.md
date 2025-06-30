@@ -1,50 +1,50 @@
-# Модуль 01 — Linux / EC2 Instance Launch
+# Module 01 — Linux / EC2 Instance Launch
 
-##  Практическое задание
-Развернуть виртуальную машину в AWS с использованием Ubuntu и получить доступ к ней по SSH.
+## Practical Task  
+Deploy a virtual machine in AWS using Ubuntu and connect to it via SSH.
 
-##  Используемые параметры
-- **Регион:** eu-north-1 (Stockholm) *(так как в eu-west-1 запуск был заблокирован SCP-)*
-- **Тип инстанса:** t2.micro
-- **Ключ:** ar_key.pem
-- **Security Group:** ssh-access (порт 22 открыт) sg-094a2a61d6669bb84 (launch-wizard-40)
-- **Теги:**
+## Parameters Used
+- **Region:** eu-north-1 (Stockholm) *(since launching in eu-west-1 was blocked by SCP)*
+- **Instance Type:** t2.micro  
+- **Key:** `ar_key.pem`  
+- **Security Group:** `ssh-access` (port 22 open) — `sg-094a2a61d6669bb84` (`launch-wizard-40`)  
+- **Tags:**
   - `Project`: 2025_internship_yvn
   - `Owner`: argevorgyan
   - `Name`: intern-vm-areg
 
-##  Шаги выполнения
+## Steps
 
-1. **Создание (Key Pair):**
-   - Название: `ar_key`
-   - Тип: `rsa`
-   - Ключ был скачан и сохранён локально.
-   - Во время создания были указаны теги:
+1. **Key Pair Creation:**
+   - Name: `ar_key`
+   - Type: `rsa`
+   - Key was downloaded and saved locally.
+   - Tags applied during creation:
      - `Name`: intern-ar-key
      - `Owner`: argevorgyan
      - `Project`: 2025_internship_yvn
 
-2. **Создание инстанса:**
-   - Тип: `t2.micro`.
-   - Регион: `eu-north-1` (Stockholm), так как `eu-west-1` был недоступен.
-   - Выбран ранее созданный ключ `ar_key.pem`.
-   - Найден и использован существующий Security Group с открытым портом 22 (SSH).
-   - При создании инстанса добавлены теги:
+2. **Instance Launch:**
+   - Type: `t2.micro`
+   - Region: `eu-north-1` (Stockholm), since `eu-west-1` was unavailable.
+   - Selected previously created key: `ar_key.pem`.
+   - Used existing Security Group with port 22 open for SSH.
+   - Tags added during instance creation:
      - `Project`: 2025_internship_yvn
      - `Owner`: argevorgyan
      - `Name`: intern-vm-areg
 
-3. **Подключение по SSH:**
-   - После запуска инстанса получил его публичный IP.
-   - Подключился с локальной машины по команде:
+3. **SSH Connection:**
+   - After launching the instance, obtained its public IP.
+   - Connected from local machine using the following command:
      ```bash
      ssh -i "ar_key.pem" ec2-user@ec2-13-60-216-242.eu-north-1.compute.amazonaws.com
      ```
 
-## Результат
-- Виртуальная машина успешно создана и запущена.
-- Подключение по SSH работает корректно.
-- Все параметры соответствуют заданию.
-- Инстанс был остановлен после завершение задания!
-- ![Скрины](./img1.png)
-- ![Скрины](./img2.png)
+## Result
+- The virtual machine was successfully created and launched.
+- SSH connection works properly.
+- All parameters meet the task requirements.
+- The instance was stopped after task completion.
+- ![Screenshot](./img1.png)
+- ![Screenshot](./img2.png)
