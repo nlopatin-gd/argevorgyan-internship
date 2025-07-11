@@ -16,14 +16,4 @@
 
 
 ## Example Output
-
-```
-1
-2
-Fizz
-4
-Buzz
-Fizz
-7
- etc
- ```
+ ![scr](scr1.png)
