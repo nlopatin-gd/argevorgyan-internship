@@ -10,6 +10,11 @@ while getopts "s:i:o:" opt; do
 done
 
 #input validation
+if ! [[ "$shift_amt" =~ ^-?[0-9]+$ ]]; then
+  echo "Error: Shift amount must be an integer"
+  exit 1
+fi
+
 [[ -z $shift_amt || -z $input_file || -z $output_file ]] && {
   echo "Missing required arguments"; exit 1;
 }

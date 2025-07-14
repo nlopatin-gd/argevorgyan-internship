@@ -1,4 +1,4 @@
-#!/Bin/bash
+#!/bin/bash
 #fizzbuzz task, prints numbers from 1 to 100 if its multiple of 3 prints "Fizz",
 #if its multiple of 5 prints "Buzz", if its multiple of both prints "FizzBuzz"
 echo "multiples of 3 and 5 from 1 to 100"

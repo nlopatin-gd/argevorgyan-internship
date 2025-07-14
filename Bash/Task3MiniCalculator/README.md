@@ -11,7 +11,7 @@ The script must:
 ## Example 
 
 ```bash
-./calculator.sh -o + -n 2 4 6 -d
+./minicalc.sh -o + -n 2 4 6 -d
 ```
 
 output

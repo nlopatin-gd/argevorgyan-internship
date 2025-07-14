@@ -2,7 +2,7 @@
 REPORT_FILE="system_report.txt"
 
 # title
-echo "===== System Report =====" > "$REPORT_FILE"
+echo "===== System Report =====" >> "$REPORT_FILE"
 
 #  info
 echo "Date and Time       : $(date)" >> "$REPORT_FILE"

@@ -5,7 +5,7 @@ while getopts "i:o:s:vrlu" opt; do #getting options
     i) input_file=$OPTARG ;;
     o) output_file=$OPTARG ;;
     s) sub_arg=$OPTARG ;; #replace
-    v) flip=true ;; 
+    v) flip=true ;;
     r) reverse=true ;;
     l) lower=true ;;
     u) upper=true ;;
@@ -23,7 +23,10 @@ input_str="cat \"$input_file\""
 if [[ $sub_arg ]]; then
   a=$(echo "$sub_arg" | awk '{print $1}') #get first word
   b=$(echo "$sub_arg" | awk '{print $2}') #get second word
-  input_str+=" | sed 's/$a/$b/g'". #replace text
+  if ! grep -q $a $input_file; then
+  echo "Error: The string '$a' is not present in '$input_file'."
+fi
+  input_str+=" | sed 's/$a/$b/g'"
 fi
 
 # apply transformations
@@ -33,4 +36,5 @@ fi
 
 # Reverse line order
 [[ $reverse ]] && input_str+=" | tac"
+
 eval "$input_str" > "$output_file"

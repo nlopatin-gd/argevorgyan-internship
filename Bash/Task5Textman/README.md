@@ -1,4 +1,4 @@
-# Text File Transformer Script
+clear# Text File Transformer Script
 
 This Bash script takes an input file and applies a series of optional text transformations based on flags. Content is saved to output file.
 
@@ -7,7 +7,6 @@ This Bash script takes an input file and applies a series of optional text trans
 ```bash
 ./man.sh -i <input_file> -o <output_file> [options]
 ```
-
 ### Required Arguments
 
 - `-i <input_file>`: Path to the input file.
@@ -23,11 +22,13 @@ This Bash script takes an input file and applies a series of optional text trans
 
 >  If multiple case transformation flags (`-v`, `-l`, `-u`) are used together, they are applied in the order: `-v`, `-l`, `-u`.
 
+
+
 ## Examples
 
 ### Substitute text and make it uppercase:
 ```bash
-./man.sh -i in.txt -o out.txt -s "foo bar" -u
+./man.sh -i in.txt -o out.txt -s "Tash Bash" -u
 ```
 ![ex1](scr1.png)
 

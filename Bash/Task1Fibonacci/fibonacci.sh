@@ -7,7 +7,7 @@ echo "======================="
 f0=0                            #set first two known fibonacci numbers
 f1=1 
 
-Fibonum(){
+fib(){
 	if [ $n -eq 0 ]; then       #first two cases in which we are sure of
 		echo $f0
 	elif [ $n -eq 1 ]; then  
@@ -26,8 +26,13 @@ echo "=================================================="
 read n
     if [ $n -gt 92 ]; then #check if input goes beyond bash limits
     echo "max allowed is 92 because of  Bash integer limits"
-    exit 1:
-    fi
-echo "Your number: $n as fibonacci number is: $(Fibonum $n)"
+    exit 1; elif [ $n -lt 0 ]; then #check if input is negative
+	echo "Negative numbers are not allowed"
+	exit 1; elif [ -z "$n" ]; then #check if input is empty
+	echo "Input cannot be empty"
+	exit 1; elif ! [[ "$n" =~ ^[0-9]+$ ]]; then #check if input is not a number
+	echo "Input must be a positive integer"
+	exit 1; fi
+echo "Your number: $n as fibonacci number is: $(fib $n)"
 echo "=================================================="
 exit 0

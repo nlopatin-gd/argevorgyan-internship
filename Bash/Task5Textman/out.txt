@@ -1,4 +1,4 @@
-1. THIS IS SIMPLE TEXT
-2. WOW
-3. ARAT
-4. TASH
+1. This Is Simple Text
+2. Wow
+3. Arat
+4. Tash
