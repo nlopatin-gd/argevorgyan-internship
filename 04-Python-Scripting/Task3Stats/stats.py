@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
 # This script reads a log file and counts unique user agents
 import sys
-
+usercount = {}  # dict for user counts
 try:
-    lines = open(sys.argv[1]).readlines()  # Read file lines
+    with open(sys.argv[1], 'r') as file:
+        for line in file:
+            useragent = line.split('"')[-2]  # extract user agent
+            usercount[useragent] = usercount.get(useragent, 0) + 1  # increment count
+
 except:
     print("Usage: script.py <access_log_file>")  # Show usage message
     sys.exit(1)
-
-usercount = {}  # dict for user counts
-
-for line in lines:
-    useragent = line.split('"')[-2]  # extract user agent
-    usercount[useragent] = usercount.get(useragent, 0) + 1  # increment count
 
 print(f"\nTotal unique User Agents: {len(usercount)}\n")  # total count
 # Sort user agents by count 

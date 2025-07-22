@@ -20,4 +20,6 @@ Includes common types like:
 I added a list of common file extensions to check for validation,  
 but even if an extension is not in the list, the script will still print it —  
 because I assume there are many valid extensions that may not be listed.
----
+## Possible Enhancements 
+
+- Could enhance further to support hidden files or warn about multiple extensions.
