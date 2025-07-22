@@ -3,6 +3,7 @@
 import os
 import sys
 import argparse
+import platform
 
 def distro():
     try:

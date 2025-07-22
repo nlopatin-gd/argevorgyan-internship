@@ -7,7 +7,7 @@ This Python Filtering script
 - Converts the result into a tuple
 - Finds and prints the minimum and maximum numbers in the tuple
 
-Output example:
+## Output example:
 ![ex](scr1.png)
 
 Notes:

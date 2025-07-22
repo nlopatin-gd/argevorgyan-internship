@@ -13,11 +13,17 @@ This script  displays basic system information based on command-line options pro
 | `-u` | Show current user  
 | `-l` | Show load average  
 | `-i` | Show IP address    
+| `--all` | Show all (Only in V2)
 
-### Example:
+### Example V1:
 
 ![exwsl](scr1.png)
 ![exvm](scr2.png)
+
+### Example V2:
+![exwsl](scr3.png)
+![exvm](scr4.png)
+
 
 If no options are provided, the script will show a helpful usage message.
 
