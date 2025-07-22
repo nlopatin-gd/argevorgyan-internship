@@ -1,0 +1,34 @@
+{
+  "PythonautomatedSurvey": {
+    "General Questions": {
+      "How satisfied are you with our service?": {
+        "Description": "Rate our service",
+        "Answers": [
+          "Very satisfied",
+          "Satisfied",
+          "Neutral",
+          "Dissatisfied",
+          "Very dissatisfied"
+        ]
+      },
+      "How likely are you to recommend us to a friend?": {
+        "Description": "how likely are you to recommend our service?",
+        "Answers": [
+          "Very likely",
+          "Likely",
+          "Neutral",
+          "Unlikely"
+        ]
+      },
+      "What can we improve?": {
+        "Description": "Please select what we can do better.",
+        "Answers": [
+          "Faster response time",
+          "Better pricing",
+          "More features",
+          "Friendlier support"
+        ]
+      }
+    }
+  }
+}
