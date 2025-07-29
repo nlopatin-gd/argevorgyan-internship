@@ -20,6 +20,9 @@ Maven release for a Java project (`spring-petclinic`) using the Maven Release Pl
 <img src="scr1.png" alt="validateex" width="450" height="350"/>
 
 - `mvn spring-boot:run`
+OR
+- java -jar spring-petclinic.jar
+![ja](jav.png)
 - `localhost:8080`
 
 ![sprrun](scr3.png)
@@ -114,8 +117,14 @@ Maven release for a Java project (`spring-petclinic`) using the Maven Release Pl
 ### 4. Run Maven Release Plugin
 
 #### Prepare
-`mvn release:prepare`
-
+-In non-Interacctive Mode 
+```bash
+  mvn --batch-mode -Dtag=pet-clinic-1.3 release:prepare \
+                 -DreleaseVersion=4.0.0 \
+                 -DdevelopmentVersion=4.0.0-SNAPSHOT
+```
+![non](nonint.png)
+![40](400.png)
 ![prepscr](scr5.png)
 
 It will:
@@ -127,7 +136,10 @@ It will:
 ![perfscr](scr6.png)
 deploys the artifacts
 
----
+#### Cleanup
+`mvn release:clean`
+![clean](clean.png)
+
 
 ## Common issues and fixes
 
