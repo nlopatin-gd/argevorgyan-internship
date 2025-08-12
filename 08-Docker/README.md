@@ -158,6 +158,24 @@ Configured the repository to run on port `5000` for Docker push and pull and rec
 docker run -p 8080:8080 localhost:5000/spring-petclinic:latest
 ```
 ![check](dockcheck.png)
+
+## Bash script for AWS push
+```Bash
+#!/bin/bash
+set -e
+IMAGE_NAME="spring-petclinic-ar"
+IMAGE_TAG="latest"
+
+aws ecr get-login-password --region $AWS_REGION | \
+docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+docker build --build-arg DOCKERNEXUS=$DOCKERNEXUS -t $IMAGE_NAME:$IMAGE_TAG .
+
+docker tag $IMAGE_NAME:$IMAGE_TAG \
+$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:$IMAGE_TAG
+
+docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:$IMAGE_TAG
+```
 ---
 
 ## AWS ECR Repository Setup and Upload
