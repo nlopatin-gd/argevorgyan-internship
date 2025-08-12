@@ -27,26 +27,35 @@ docker run -p 8080:8080 petclinic
 I configured Maven to use a local nexus mirror by copying in settings.xml. This speeds up builds by avoiding downloads from maven central.
 
 ```Dockerfile
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+#build
+FROM maven:3-eclipse-temurin-21-alpine AS build
 
 WORKDIR /app
 
-COPY settings.xml /root/.m2/settings.xml 
+ARG DOCKERNEXUS
+ENV DOCKERNEXUS=${DOCKERNEXUS}
+
+COPY settings.xml /root/.m2/settings.xml
 
 COPY pom.xml .
-#soucre code
-COPY src ./src 
 
-RUN mvn clean package -DskipTests -B
+RUN mvn dependency:go-offline -B
 
-#run
-FROM eclipse-temurin:17-jre
+COPY src ./src
+
+RUN mvn clean package -DskipTests -B \
+    && rm -rf /root/.m2  
+
+#run 
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
 COPY --from=build /app/target/*.jar app.jar
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-Djava.awt.headless=true", "-jar", "app.jar"]
 
 ```
 
@@ -74,7 +83,10 @@ version: "3.9"
 
 services:
   spring-petclinic:
-    build: ./
+    build:
+      context: ./
+      args:
+        DOCKERNEXUS: ${DOCKERNEXUS}
     image: spring-petclinic:latest
     ports:
       - "8079:8080"
@@ -93,6 +105,12 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     env_file:
       - .env
+    volumes:
+      - postgres_container:/var/lib/postgresql/data
+
+volumes:
+  postgres_container:
+
 
 ```
 
