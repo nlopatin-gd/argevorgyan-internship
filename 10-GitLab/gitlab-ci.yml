@@ -1,0 +1,58 @@
+stages:
+  - checkstyle
+  - test
+  - build
+  - docker
+
+variables:
+  MR_IMAGE: "registry.gitlab.com/devkans/spring-petclinic/mr:$CI_COMMIT_SHORT_SHA"
+  MAIN_IMAGE: "registry.gitlab.com/devkans/spring-petclinic/main:$CI_COMMIT_SHORT_SHA"
+
+default:
+  image: maven:3.8.5-eclipse-temurin-17-alpine
+
+checkstyle:
+  stage: checkstyle
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  script:
+    - mvn --batch-mode checkstyle:checkstyle
+  artifacts:
+    paths: [target/checkstyle-result.xml]
+    expire_in: 1 week
+
+test:
+  stage: test
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  script:
+    - mvn --batch-mode test
+
+build:
+  stage: build
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  script:
+    - mvn --batch-mode clean package
+
+docker_mr:
+  stage: docker
+  image: docker:24.0.5
+  services: [docker:24.0.5-dind]
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker build -t "$MR_IMAGE" .
+    - docker push "$MR_IMAGE"
+
+docker_main:
+  stage: docker
+  image: docker:24.0.5
+  services: [docker:24.0.5-dind]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker build -t "$MAIN_IMAGE" .
+    - docker push "$MAIN_IMAGE"
