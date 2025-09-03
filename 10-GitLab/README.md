@@ -28,43 +28,48 @@ checkstyle:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
   script:
-    - mvn -B checkstyle:checkstyle
+    - mvn --batch-mode checkstyle:checkstyle
+  artifacts:
+    paths: [target/checkstyle-result.xml]
+    expire_in: 1 week
 
 test:
   stage: test
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
   script:
-    - mvn -B test
+    - mvn --batch-mode test
 
 build:
   stage: build
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
   script:
-    - mvn -B clean package
+    - mvn --batch-mode clean package
+
+# docker job using extends
+.docker_template:
+  stage: docker
+  image: docker:24.0.5
+  services: [docker:24.0.5-dind]
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker build -t "$IMAGE_NAME" .
+    - docker push "$IMAGE_NAME"
 
 docker_mr:
-  stage: docker
-  image: docker:24.0.5
-  services: [docker:24.0.5-dind]
+  extends: .docker_template
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-  script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - docker build -t "$MR_IMAGE" .
-    - docker push "$MR_IMAGE"
+  variables:
+    IMAGE_NAME: "$MR_IMAGE"
 
 docker_main:
-  stage: docker
-  image: docker:24.0.5
-  services: [docker:24.0.5-dind]
+  extends: .docker_template
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
-  script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-    - docker build -t "$MAIN_IMAGE" .
-    - docker push "$MAIN_IMAGE"
+  variables:
+    IMAGE_NAME: "$MAIN_IMAGE"
 ```
   - Built Docker imagesg for merge requests and main branch.  
 
