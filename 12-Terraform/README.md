@@ -14,8 +14,14 @@ terraform/
         └── main.tf      # VM, Snapshot, Image, Instance Group, Load Balancer
 ```
 
+Before managing the bucket via Terraform, the GCP bucket `ar-terraform-bucket` was created manually
+
+![buckcreate](buckcreate.png)
+
 ### 1. variables.tf
+
 ```terraform
+
 variable "project_id" {
   default = "gd-gcp-internship-devops"
 }
@@ -29,14 +35,14 @@ variable "zone" {
 }
 
 variable "allowed_ips" {
-  
-  default     = ["0.0.0.0/0"]
+  type        = list(string)
+  description = "Allowed IPs for firewall"
+  default     = []
 }
 ```
 ### 2. Compute module
 
 - Created a **temporary VM** (`temp_vm`) with a startup script installing Apache and serving `Hello from $(hostname)`.
-- Took a **snapshot** of the VM’s boot disk and created a **custom image**.
 - Built an **Instance Template** using the custom image.
 - Created a **Managed Instance Group (MIG)** of 3 replicas for  availability.
 - Added a **minimal health check** for port 80.
@@ -71,20 +77,22 @@ resource "google_compute_instance" "temp_vm" {
   EOT
 }
 
-# snap of disk
+# snapshot of the temp VM's disk
 resource "google_compute_snapshot" "temp_snapshot" {
   name        = "ar-temp-snapshot"
   source_disk = google_compute_instance.temp_vm.boot_disk[0].source
   zone        = var.zone
+
+  depends_on = [google_compute_instance.temp_vm]
 }
 
-# image from snap
+# image from the snapshot 
 resource "google_compute_image" "custom_image" {
   name            = "ar-custom-http-image"
   source_snapshot = google_compute_snapshot.temp_snapshot.id
 }
 
-# instance template
+# instance template 
 resource "google_compute_instance_template" "web_template" {
   name         = "ar-web-template"
   machine_type = "e2-micro"
@@ -103,12 +111,15 @@ resource "google_compute_instance_template" "web_template" {
 
   metadata_startup_script = <<-EOT
     #!/bin/bash
+    apt-get update
+    apt-get install -y apache2
     echo "Hello from $(hostname)" > /var/www/html/index.html
+    systemctl enable apache2
     systemctl start apache2
   EOT
 }
 
-# Managed instance group with 3 replicas
+# instance group
 resource "google_compute_region_instance_group_manager" "web_mig" {
   name               = "ar-web-mig"
   region             = var.region
@@ -118,30 +129,47 @@ resource "google_compute_region_instance_group_manager" "web_mig" {
   version {
     instance_template = google_compute_instance_template.web_template.self_link
   }
+
+  named_port {
+    name = "http"
+    port = 80
+  }
+
+  # auto-healing using the health check
+  auto_healing_policies {
+    health_check      = google_compute_health_check.web_hc.id
+    initial_delay_sec = 120
+  }
+  depends_on = [google_compute_instance_template.web_template]
 }
 
-# health check
+# health check 
 resource "google_compute_health_check" "web_hc" {
-  name = "ar-web-hc"
+  name                = "ar-web-hc"
+  check_interval_sec  = 10
+  timeout_sec         = 5
+  healthy_threshold   = 2
+  unhealthy_threshold = 3
 
   http_health_check {
     port = 80
   }
 }
 
-# LB
+# backend service for lb
 resource "google_compute_backend_service" "web_backend" {
   name      = "ar-web-backend"
   protocol  = "HTTP"
   port_name = "http"
 
+  health_checks = [google_compute_health_check.web_hc.id]
+
   backend {
     group = google_compute_region_instance_group_manager.web_mig.instance_group
   }
-
-  health_checks = [google_compute_health_check.web_hc.id]
 }
 
+# URL map to backend service
 resource "google_compute_url_map" "web_url_map" {
   name            = "ar-web-url-map"
   default_service = google_compute_backend_service.web_backend.id
@@ -152,34 +180,23 @@ resource "google_compute_target_http_proxy" "web_proxy" {
   url_map = google_compute_url_map.web_url_map.id
 }
 
-# external ip
 resource "google_compute_global_forwarding_rule" "web_fwd" {
   name       = "ar-web-fwd"
   target     = google_compute_target_http_proxy.web_proxy.id
   port_range = "80"
 }
 
+# # optional: bucket 
+# resource "google_storage_bucket" "my_bucket" {
+#   name     = "aropt-terraform-bucket"
+#   location = var.region
+# }
+
 # Output LB IP
 output "load_balancer_ip" {
   value = google_compute_global_forwarding_rule.web_fwd.ip_address
 }
 
-# vars
-variable "zone" {
-  default = "europe-central2-a"
-}
-
-variable "region" {
-  default = "europe-central2"
-}
-
-variable "vpc_network" {
-  default = "default"  
-}
-
-variable "subnet" {
-  default = "default" 
-}
 ```
 
 ### 2. Build Network Module (`modules/network/vpc.tf`)
@@ -230,44 +247,7 @@ variable "allowed_ips" {
 }
 ```
 
-### 4. Use Modules in `main.tf`
-```terraform
-terraform {
-  backend "gcs" {
-    bucket = "ar-terraform-bucket" 
-    prefix = "terraform/state"
-  }
-
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "6.8.0"   
-  }
-}
-
-provider "google" {
-  project = var.project_id
-  region  = var.region
-  zone    = var.zone
-}
-
-module "network" {
-  source      = "./modules/network"
-  region      = var.region
-}
-
-module "compute" {
-  source      = "./modules/compute"
-  zone        = var.zone
-  region      = var.region
-  vpc_network = module.network.vpc_network
-  subnet      = module.network.subnet
-}
-output "load_balancer_ip" {
-  value = module.compute.load_balancer_ip
-  description = "IP of Load Balancer"
-}
-```
+### 4. Use Modules in `main.tf`         
 
 - Called `network` and `compute` modules in the root `main.tf`.
 
@@ -328,6 +308,8 @@ Page content confirms which instance served the request
 
 ### Note on Terraform State and Locking
 
+![applyanddestroy](applyanddestroy.png)
+
 - **Local Backend** (`terraform.tfstate`):
   - No automatic locking
   - If multiple processes run Terraform simultaneously, the state file may get corrupted
@@ -357,17 +339,41 @@ resource "google_storage_bucket" "my_bucket" {
 Remove bucket from Terraform state (without deleting in GCP)
 
 ![rmbuck](rmbucket.png)
-
+![rem](rem.png)
 ---
 
 Re-add bucket to Terraform without creating a new one
 
 ![im](importbuck.png)
-
+![ipm](imported.png)
 ---
 
-### Key Points Learned
+### There is also 
 
 1. `terraform state rm` removes a resource from the Terraform state **without deleting it in the cloud**.  
 2. `terraform import` brings existing resources under Terraform management  
-3. Its useful for critical resources that shouldnt be deleted when removing them from the code temporarily.
+
+
+
+### Source ranges 
+ 
+The load balancer and instances are accessible only from:
+- My current public IP (defined via `TF_VAR_allowed_ips` in `.zshrc`)
+- Google Cloud health check IP ranges 
+
+![source](sourcerange.png)
+
+### Health check time-out possible issue and fix 
+```
+resource "google_compute_health_check" "web_hc" {
+  name                = "ar-web-hc"
+  check_interval_sec  = 10
+  timeout_sec         = 5
+  healthy_threshold   = 2
+  unhealthy_threshold = 3
+
+  http_health_check {
+    port = 80
+  }
+}
+```

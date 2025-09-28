@@ -21,6 +21,7 @@ provider "google" {
 module "network" {
   source = "./modules/network"
   region = var.region
+  allowed_ips = var.allowed_ips
 }
 
 module "compute" {
@@ -35,3 +36,10 @@ output "load_balancer_ip" {
   value       = module.compute.load_balancer_ip
   description = "IP of Load Balancer"
 }
+
+# removed {
+#  from = module.compute.google_storage_bucket.my_bucket 
+# lifecycle {
+#    destroy = false
+#  }
+#  }

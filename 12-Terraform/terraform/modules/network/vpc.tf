@@ -19,7 +19,14 @@ resource "google_compute_firewall" "allow_lb" {
     ports    = ["80", "443"]
   }
 
-  source_ranges =  var.allowed_ips
+  # Allow pub ip and ghc ranges
+  source_ranges = concat(
+    var.allowed_ips,
+    [
+      "35.191.0.0/16",
+      "130.211.0.0/22"
+    ]
+  )
 }
 
 output "vpc_network" {
@@ -31,9 +38,12 @@ output "subnet" {
 }
 
 variable "region" {
+  type    = string
   default = "europe-central2"
 }
-variable "allowed_ips" {
 
-  default     = ["0.0.0.0/0"]
+variable "allowed_ips" {
+  type        = list(string)
+  description = "Allowed IPs for firewall"
+  default     = []
 }
