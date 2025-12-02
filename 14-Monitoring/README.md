@@ -1,4 +1,4 @@
-# Task
+# Task 1 Prometheus & Grafana
 ![task](task.png)
 
 ---
@@ -167,3 +167,119 @@ For example: instead of `os_free_physical_memory_bytes{job="$job",instance="$ins
   - Tried building the application in a **smaller image** (Alpine-based Eclipse Temurin) to see if panel issues were caused because of alpine images.  
   - Switched to a **full OS image** and even added `privileged: true` in the Docker Compose setup.  
 - None of these image changes solved the problem. The real cause was incorrect **PromQL** queries in the broken panels. Replacing them with simple, direct  queries fixed the issue c:
+
+# Task 2 - Logging 
+
+![task2](task2.png)
+
+--- 
+
+## 1. Run the Spring Petclinic Application with Logs
+
+Ran the Spring application and redirected logs to a separate file:
+
+```bash
+java -jar target/spring-petclinic-4.0.5.jar > pet.log 
+```
+
+---
+
+## 2. Configure Loki
+
+installed Loki and configured `loki-config.yaml`
+
+```yaml
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9095
+  log_level: info
+
+common:
+  path_prefix: ./loki
+  storage:
+    filesystem:
+      chunks_directory: ./loki/chunks
+      rules_directory: ./loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2020-10-24
+      store: boltdb-shipper
+      object_store: filesystem
+      schema: v11
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  boltdb_shipper:
+    active_index_directory: ./loki/index
+    cache_location: ./loki/cache
+    cache_ttl: 24h
+  filesystem:
+    directory: ./loki/chunks
+
+compactor:
+  working_directory: ./loki/compactor
+
+
+limits_config:
+  allow_structured_metadata: false
+```
+
+---
+
+## 3. Configure Promtail
+
+```yaml
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 9096   
+  log_level: info
+
+positions:
+  filename: ./promtail-positions.yaml
+
+clients:
+  - url: http://localhost:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: spring-petclinic-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: spring-petclinic
+          __path__: ./pet.log
+```
+Wait till loki is ready then proceed to promtail 
+
+![lok](lokiready.png)
+
+---
+
+### 4. Start Promtail
+
+```bash
+promtail -config.file=promtail-config.yaml
+```
+![prom](promtail.png)
+
+---
+
+### 5. Verify Logs in Grafana
+
+Added Loki as data-sourcee
+![addlok](addloki.png)
+
+Proceeded to explore and checked logs there 
+
+`{job="spring-petclinic"}`
+
+![verify](verify.png)
