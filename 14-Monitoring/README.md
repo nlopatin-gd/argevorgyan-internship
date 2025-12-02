@@ -141,7 +141,8 @@ scrape_configs:
 5. **Fixing broken panels**
 
 Some Grafana panels were not displaying information correctly. I updated the PromQL queries in the affected panels to use simple, direct java_... JVM metrics, which resolved the issue and made the panels work correctly.
-For example: instead of `os_free_physical_memory_bytes{job="$job",instance="$instance"}` I used `java_lang_OperatingSystem_FreePhysicalMemorySize` etc
+For example: instead of `os_free_physical_memory_bytes{job="$job",instance="$instance"}` I used `java_lang_OperatingSystem_FreePhysicalMemorySize{job="$job",instance="$instance"}` etc
+![example](example.png)
 <table>
   <tr>
     <th style="font-size:24px; text-align:center;">Before</th>
