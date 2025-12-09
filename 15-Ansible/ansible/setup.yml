@@ -1,0 +1,51 @@
+- name: Prepare VMs
+  hosts: all
+  become: yes
+
+  tasks:
+    - name:  install packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+        state: present
+        update_cache: yes
+
+    - name:  install Docker and skip if already installed
+      shell: curl -fsSL https://get.docker.com | sh
+      args:
+        creates: /usr/bin/docker
+
+    - name: add ubuntu to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: ensure Docker service started
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: make sure domain resolves 
+      lineinfile:
+        path: /etc/hosts
+        line: "192.168.10.156 nexus.local.internship"
+        state: present
+
+    - name: configure to allow insecure registry 
+      copy:
+        dest: /etc/docker/daemon.json
+        content: |
+          {
+            "insecure-registries" : ["nexus.local.internship:5001"]
+          }
+        owner: root
+        group: root
+
+    - name: restart to apply
+      service:
+        name: docker
+        state: restarted
