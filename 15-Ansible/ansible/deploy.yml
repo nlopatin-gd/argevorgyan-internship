@@ -1,0 +1,19 @@
+- name: Deploy Spring Petclinic on application VM
+  hosts: application
+  become: yes
+
+  tasks:
+    - name: pull image from Nexus
+      community.docker.docker_image:
+        name: "{{ nexus_registry }}/{{ image_name }}"
+        tag: "{{ image_tag }}"
+        source: pull
+
+    - name: run new container
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        image: "{{ nexus_registry }}/{{ image_name }}:{{ image_tag }}"
+        state: started
+        restart_policy: always
+        published_ports:
+          - "{{ host_port }}:{{ app_port }}"
