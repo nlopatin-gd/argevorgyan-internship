@@ -20,7 +20,7 @@ spec:
             - containerPort: 8080
           env:
             - name: DB_HOST
-              value: "34.62.87.182"
+              value: "YOUR_CLOUD_SQL_PUBLIC_IP"
             - name: DB_NAME
               value: "argevorgyan_appdb"
             - name: DB_USER
