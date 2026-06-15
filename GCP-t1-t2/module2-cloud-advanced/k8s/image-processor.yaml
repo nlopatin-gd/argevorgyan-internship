@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: image-processor
+  namespace: argevorgyan-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: image-processor
+  template:
+    metadata:
+      labels:
+        app: image-processor
+    spec:
+      containers:
+        - name: image-processor
+          image: stefanprodan/podinfo:latest
+          ports:
+            - containerPort: 9898
+          env:
+            - name: PODINFO_UI_MESSAGE
+              value: "argevorgyan image-processor"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: image-processor
+  namespace: argevorgyan-app
+spec:
+  type: NodePort
+  selector:
+    app: image-processor
+  ports:
+    - port: 80
+      targetPort: 9898

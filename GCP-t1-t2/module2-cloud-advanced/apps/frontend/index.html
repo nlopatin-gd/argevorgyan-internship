@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Image Uploader</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #f1f5f9; }
+    p.subtitle { color: #94a3b8; font-size: 0.9rem; margin-bottom: 2rem; }
+    .drop-zone {
+      border: 2px dashed #334155;
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .drop-zone:hover { border-color: #6366f1; background: #1a2540; }
+    .drop-zone input { display: none; }
+    .drop-zone .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .drop-zone p { color: #94a3b8; font-size: 0.875rem; }
+    .drop-zone .hint { font-size: 0.75rem; color: #64748b; margin-top: 0.4rem; }
+    #file-name { margin-top: 1rem; font-size: 0.875rem; color: #6366f1; min-height: 1.2em; }
+    button {
+      margin-top: 1.5rem;
+      width: 100%;
+      padding: 0.75rem;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #4f46e5; }
+    button:disabled { background: #334155; cursor: not-allowed; }
+    #status {
+      margin-top: 1.25rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      display: none;
+    }
+    #status.success { background: #14532d; color: #86efac; display: block; }
+    #status.error   { background: #450a0a; color: #fca5a5; display: block; }
+    .uploads { margin-top: 2rem; }
+    .uploads h2 { font-size: 1rem; color: #94a3b8; margin-bottom: 1rem; }
+    .upload-item {
+      background: #0f172a;
+      border-radius: 6px;
+      padding: 0.6rem 0.9rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      word-break: break-all;
+    }
+    .upload-item span { color: #e2e8f0; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>📦 Image Uploader</h1>
+    <p class="subtitle">Upload an image — it gets saved to GCS, logged in PostgreSQL, and queued via Pub/Sub.</p>
+
+    <div class="drop-zone" onclick="document.getElementById('file-input').click()">
+      <div class="icon">🖼️</div>
+      <p>Click to select a file</p>
+      <p class="hint">PNG, JPG, GIF, WEBP supported</p>
+      <input type="file" id="file-input" accept="image/*" onchange="onFileSelected(this)"/>
+    </div>
+    <div id="file-name"></div>
+
+    <button id="upload-btn" onclick="uploadFile()" disabled>Upload</button>
+    <div id="status"></div>
+
+    <div class="uploads">
+      <h2>Recent uploads</h2>
+      <div id="uploads-list"></div>
+    </div>
+  </div>
+
+  <script>
+    const BACKEND = window.BACKEND_URL || '';
+
+    function onFileSelected(input) {
+      const file = input.files[0];
+      document.getElementById('file-name').textContent = file ? `Selected: ${file.name}` : '';
+      document.getElementById('upload-btn').disabled = !file;
+    }
+
+    async function uploadFile() {
+      const input = document.getElementById('file-input');
+      const file = input.files[0];
+      if (!file) return;
+
+      const btn = document.getElementById('upload-btn');
+      const status = document.getElementById('status');
+      btn.disabled = true;
+      btn.textContent = 'Uploading…';
+      status.className = '';
+      status.style.display = 'none';
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch(`${BACKEND}/upload`, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (res.ok) {
+          status.className = 'success';
+          status.textContent = `✅ Uploaded: ${data.gcs_path}`;
+          input.value = '';
+          document.getElementById('file-name').textContent = '';
+          loadUploads();
+        } else {
+          throw new Error(data.detail || 'Upload failed');
+        }
+      } catch (err) {
+        status.className = 'error';
+        status.textContent = `❌ Error: ${err.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Upload';
+      }
+    }
+
+    async function loadUploads() {
+      try {
+        const res = await fetch(`${BACKEND}/uploads`);
+        const data = await res.json();
+        const list = document.getElementById('uploads-list');
+        if (!data.length) { list.innerHTML = '<div class="upload-item">No uploads yet.</div>'; return; }
+        list.innerHTML = data.map(u =>
+          `<div class="upload-item"><span>${u.filename}</span><br>${u.gcs_path}<br>${u.created_at}</div>`
+        ).join('');
+      } catch {
+        document.getElementById('uploads-list').innerHTML = '<div class="upload-item">Could not load uploads.</div>';
+      }
+    }
+
+    loadUploads();
+  </script>
+</body>
+</html>
