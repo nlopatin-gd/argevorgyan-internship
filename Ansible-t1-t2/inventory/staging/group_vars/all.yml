@@ -1,0 +1,23 @@
+---
+env: staging
+app_name: boutique
+app_port: 80
+
+nginx_worker_processes: 4
+nginx_worker_connections: 1024
+nginx_keepalive_timeout: 60
+nginx_server_name: "staging.boutique.example.com"
+nginx_root: /var/www/html
+
+haproxy_stats_port: 8404
+haproxy_stats_uri: /stats
+haproxy_balance: leastconn
+haproxy_maxconn: 5000
+haproxy_timeout_connect: "5s"
+haproxy_timeout_client:  "50s"
+haproxy_timeout_server:  "50s"
+
+allowed_ports:
+  - "22/tcp"
+  - "80/tcp"
+  - "443/tcp"

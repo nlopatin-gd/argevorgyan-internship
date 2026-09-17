@@ -1,0 +1,26 @@
+---
+env: dev
+app_name: boutique
+app_port: 80
+
+# Nginx
+nginx_worker_processes: 2
+nginx_worker_connections: 512
+nginx_keepalive_timeout: 30
+nginx_server_name: "dev.boutique.local"
+nginx_root: /var/www/html
+
+# HAProxy
+haproxy_stats_port: 8404
+haproxy_stats_uri: /stats
+haproxy_balance: roundrobin
+haproxy_maxconn: 1000
+haproxy_timeout_connect: "5s"
+haproxy_timeout_client:  "30s"
+haproxy_timeout_server:  "30s"
+
+# Firewall — only 80, 443, 22 open
+allowed_ports:
+  - "22/tcp"
+  - "80/tcp"
+  - "443/tcp"

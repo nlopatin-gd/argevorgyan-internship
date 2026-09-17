@@ -1,0 +1,9 @@
+---
+haproxy_stats_port: 8404
+haproxy_stats_uri: /stats
+haproxy_stats_user: admin
+haproxy_balance: roundrobin
+haproxy_maxconn: 2000
+haproxy_timeout_connect: "5s"
+haproxy_timeout_client: "30s"
+haproxy_timeout_server: "30s"

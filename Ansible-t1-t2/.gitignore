@@ -1,0 +1,20 @@
+# Docker SSH key copy
+docker/authorized_keys
+
+# Ansible Vault password file
+.vault_pass
+.vault_pass.txt
+*.vault
+
+# Retry files
+*.retry
+
+# SSH keys
+*.pem
+*.key
+id_rsa*
+
+# Python
+__pycache__/
+*.pyc
+.venv/

@@ -1,0 +1,57 @@
+---
+- name: Install nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+
+- name: Ensure nginx is running
+  ansible.builtin.shell: nginx -t && (pidof nginx || nginx)
+  changed_when: false
+
+- name: Deploy nginx.conf from template
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "nginx -t -c %s"
+  notify: reload nginx
+
+- name: Remove default vhost
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: reload nginx
+
+- name: Deploy virtual host config from template
+  ansible.builtin.template:
+    src: vhost.conf.j2
+    dest: "/etc/nginx/sites-available/{{ app_name }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: reload nginx
+
+- name: Enable virtual host
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/{{ app_name }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ app_name }}.conf"
+    state: link
+  notify: reload nginx
+
+- name: Ensure document root exists
+  ansible.builtin.file:
+    path: "{{ nginx_root }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+- name: Deploy custom index.html
+  ansible.builtin.template:
+    src: index.html.j2
+    dest: "{{ nginx_root }}/index.html"
+    owner: www-data
+    group: www-data
+    mode: "0644"

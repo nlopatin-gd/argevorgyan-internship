@@ -1,0 +1,40 @@
+---
+- name: Install haproxy
+  ansible.builtin.apt:
+    name: haproxy
+    state: present
+
+- name: Ensure haproxy is running
+  ansible.builtin.shell: pidof haproxy || haproxy -f /etc/haproxy/haproxy.cfg -D
+  changed_when: false
+
+- name: Ensure haproxy certs directory exists
+  ansible.builtin.file:
+    path: /etc/haproxy/certs
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Combine cert + key into HAProxy PEM
+  ansible.builtin.shell: |
+    cat {{ ssl_cert_path }} {{ ssl_key_path }} > /etc/haproxy/certs/boutique.pem
+    chmod 600 /etc/haproxy/certs/boutique.pem
+  args:
+    creates: /etc/haproxy/certs/boutique.pem
+
+- name: Deploy haproxy.cfg from template
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "haproxy -c -f %s"
+  notify: reload haproxy
+
+- name: Allow HAProxy stats port in ufw
+  community.general.ufw:
+    rule: allow
+    port: "{{ haproxy_stats_port }}"
+    proto: tcp

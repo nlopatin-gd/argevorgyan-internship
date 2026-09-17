@@ -1,0 +1,8 @@
+---
+- name: reload nginx
+  ansible.builtin.shell: nginx -s reload
+  changed_when: true
+
+- name: restart nginx
+  ansible.builtin.shell: nginx -s stop; sleep 1; nginx
+  changed_when: true

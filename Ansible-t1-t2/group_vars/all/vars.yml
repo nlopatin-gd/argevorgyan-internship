@@ -1,0 +1,3 @@
+---
+# Global vars — override per environment in inventory/*/group_vars/all.yml
+# Non-sensitive only. Secrets live in vault.yml.

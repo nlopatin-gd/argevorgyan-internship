@@ -1,0 +1,20 @@
+---
+# App
+app_name: boutique
+app_version: "1.0.0"
+app_port: 80
+
+# SSL paths
+ssl_cert_path: /etc/ssl/certs/boutique.crt
+ssl_key_path: /etc/ssl/private/boutique.key
+
+# Nginx
+nginx_access_log: /var/log/nginx/access.log
+nginx_error_log: /var/log/nginx/error.log
+
+# HAProxy stats
+haproxy_stats_user: admin
+haproxy_log_path: /var/log/haproxy.log
+
+# Timezone
+timezone: UTC
