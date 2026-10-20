@@ -1,7 +1,24 @@
 #!/bin/bash
 
-# usage: ./backup.sh [path to config file]
+# usage: ./backup.sh [config file]
+#    or: ./backup.sh [config file] extract [archive.tar.gz]
+
 CONFIG="${1:-/opt/backup/backup.conf}"
+
+# Extract mode
+if [ "$2" = "extract" ]; then
+  ARCHIVE="$3"
+  if [ -z "$ARCHIVE" ] || [ ! -f "$ARCHIVE" ]; then
+    echo "Usage: ./backup.sh [config] extract [archive.tar.gz]"
+    exit 1
+  fi
+  . "$CONFIG"
+  EXTRACT_DIR="$BACKUP_DIR/extract"
+  mkdir -p "$EXTRACT_DIR"
+  tar -xzf "$ARCHIVE" -C "$EXTRACT_DIR"
+  echo "Extracted to: $EXTRACT_DIR"
+  exit 0
+fi
 
 if [ ! -f "$CONFIG" ]; then
   echo "Config file not found: $CONFIG"
