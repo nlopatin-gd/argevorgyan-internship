@@ -1,0 +1,70 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install common packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - wget
+      - ufw
+      - openssl
+      - ca-certificates
+    state: present
+    update_cache: true
+
+- name: Set timezone
+  ansible.builtin.copy:
+    content: "{{ timezone }}\n"
+    dest: /etc/timezone
+    mode: "0644"
+
+# ── Firewall ────────────────────────────────────────────────────────────────
+# ufw requires systemd; skip in container environments
+- name: Allow SSH (ufw)
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+  ignore_errors: true
+
+- name: Allow HTTP
+  community.general.ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+  ignore_errors: true
+
+- name: Allow HTTPS
+  community.general.ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+  ignore_errors: true
+
+- name: Enable ufw (deny all else)
+  community.general.ufw:
+    state: enabled
+    policy: deny
+  ignore_errors: true
+
+# ── Self-signed SSL cert via openssl CLI ────────────────────────────────────
+- name: Ensure SSL directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - /etc/ssl/certs
+    - /etc/ssl/private
+
+- name: Generate self-signed SSL key and certificate
+  ansible.builtin.command: >
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048
+    -keyout {{ ssl_key_path }}
+    -out {{ ssl_cert_path }}
+    -subj "/CN={{ ansible_hostname }}/O=Boutique/C=US"
+  args:
+    creates: "{{ ssl_cert_path }}"

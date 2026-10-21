@@ -1,0 +1,50 @@
+services:
+  lb1:
+    build: ./docker
+    container_name: lb1
+    hostname: lb1
+    ports:
+      - "32210:22"
+      - "32480:80"
+      - "32443:443"
+      - "32404:8404"
+    networks:
+      ansible_net:
+        ipv4_address: 172.28.0.10
+    cap_add:
+      - NET_ADMIN   # needed for ufw inside container
+
+  web1:
+    build: ./docker
+    container_name: web1
+    hostname: web1
+    ports:
+      - "32211:22"
+      - "32481:80"
+      - "32444:443"
+    networks:
+      ansible_net:
+        ipv4_address: 172.28.0.11
+    cap_add:
+      - NET_ADMIN
+
+  web2:
+    build: ./docker
+    container_name: web2
+    hostname: web2
+    ports:
+      - "32212:22"
+      - "32482:80"
+      - "32445:443"
+    networks:
+      ansible_net:
+        ipv4_address: 172.28.0.12
+    cap_add:
+      - NET_ADMIN
+
+networks:
+  ansible_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24

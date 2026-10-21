@@ -1,0 +1,66 @@
+---
+# Validation playbook — verify the deployment is healthy
+- name: Validate web servers
+  hosts: webservers
+  gather_facts: false
+  tasks:
+    - name: Check nginx is running
+      ansible.builtin.service_facts:
+
+    - name: Assert nginx is active
+      ansible.builtin.assert:
+        that: ansible_facts.services['nginx.service'].state == 'running'
+        fail_msg: "nginx is NOT running on {{ inventory_hostname }}"
+        success_msg: "nginx is running on {{ inventory_hostname }}"
+
+    - name: Check HTTP redirects to HTTPS (port 80)
+      ansible.builtin.uri:
+        url: "http://{{ ansible_host }}/health"
+        follow_redirects: none
+        status_code: 301
+      delegate_to: localhost
+
+    - name: Check HTTPS health endpoint
+      ansible.builtin.uri:
+        url: "https://{{ ansible_host }}/health"
+        validate_certs: false
+        status_code: 200
+      delegate_to: localhost
+
+    - name: Verify only allowed ports open (ufw status)
+      ansible.builtin.command: ufw status verbose
+      register: ufw_status
+      changed_when: false
+
+    - name: Print ufw status
+      ansible.builtin.debug:
+        var: ufw_status.stdout_lines
+
+- name: Validate load balancer
+  hosts: loadbalancer
+  gather_facts: false
+  tasks:
+    - name: Check haproxy is running
+      ansible.builtin.service_facts:
+
+    - name: Assert haproxy is active
+      ansible.builtin.assert:
+        that: ansible_facts.services['haproxy.service'].state == 'running'
+        fail_msg: "haproxy is NOT running on {{ inventory_hostname }}"
+        success_msg: "haproxy is running on {{ inventory_hostname }}"
+
+    - name: Check load balancer responds on HTTPS
+      ansible.builtin.uri:
+        url: "https://{{ ansible_host }}/"
+        validate_certs: false
+        status_code: 200
+      delegate_to: localhost
+
+    - name: Verify HAProxy stats page accessible
+      ansible.builtin.uri:
+        url: "http://{{ ansible_host }}:{{ haproxy_stats_port }}{{ haproxy_stats_uri }}"
+        user: "{{ haproxy_stats_user }}"
+        password: "{{ vault_haproxy_stats_password }}"
+        force_basic_auth: true
+        status_code: 200
+      delegate_to: localhost

@@ -1,0 +1,10 @@
+---
+- name: reload haproxy
+  ansible.builtin.shell: |
+    haproxy -f /etc/haproxy/haproxy.cfg -sf $(pidof haproxy 2>/dev/null || true)
+  changed_when: true
+
+- name: restart haproxy
+  ansible.builtin.shell: |
+    haproxy -f /etc/haproxy/haproxy.cfg -sf $(pidof haproxy 2>/dev/null || true)
+  changed_when: true
