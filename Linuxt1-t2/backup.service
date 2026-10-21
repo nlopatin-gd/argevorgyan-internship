@@ -1,0 +1,13 @@
+[Unit]
+Description=Folder backup script
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=root
+ExecStart=/opt/backup/backup.sh /opt/backup/backup.conf
+
+[Install]
+WantedBy=multi-user.target
