@@ -1,0 +1,13 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ar-frontend
+  namespace: ar-app
+  annotations:
+    kubernetes.io/ingress.class: gce
+spec:
+  defaultBackend:
+    service:
+      name: ar-frontend
+      port:
+        number: 80

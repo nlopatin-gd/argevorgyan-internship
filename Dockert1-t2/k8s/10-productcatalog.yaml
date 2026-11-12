@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ar-productcatalogservice
+  namespace: ar-app
+  annotations:
+    checkov.io/skip1: "CKV_K8S_43=Image digest is injected at release time; tag is pinned"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ar-productcatalogservice
+  template:
+    metadata:
+      labels:
+        app: ar-productcatalogservice
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: server
+          image: europe-west1-docker.pkg.dev/gd-gcp-gridu-devops-t1-t2/ar-registry/ar-productcatalogservice:v2
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3550
+          env:
+            - name: PORT
+              value: "3550"
+            - name: DISABLE_PROFILER
+              value: "1"
+          readinessProbe:
+            grpc:
+              port: 3550
+          livenessProbe:
+            grpc:
+              port: 3550
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ar-productcatalogservice
+  namespace: ar-app
+spec:
+  type: ClusterIP
+  selector:
+    app: ar-productcatalogservice
+  ports:
+    - name: grpc
+      port: 3550
+      targetPort: 3550

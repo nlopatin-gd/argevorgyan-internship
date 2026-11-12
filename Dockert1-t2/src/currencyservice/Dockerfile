@@ -1,20 +1,19 @@
-# Node.js service
-# Stage 1 — install deps (needs build tools for native modules)
-FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
+# Stage 1: install production dependencies.
+# No --platform=$BUILDPLATFORM here on purpose: node_modules must be built for the
+# target architecture (amd64), otherwise native modules would be arm64 on a Mac.
+FROM node:24.20.0-alpine AS builder
 RUN apk add --no-cache python3 make g++
-WORKDIR /app
+WORKDIR /usr/src/app
 COPY package*.json ./
-# npm ci = clean install, faster and more reproducible than npm install
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
-# Stage 2 — alpine + node binary only, no npm or build tools
-FROM alpine:3.19
-# Install only the node runtime, not npm
-RUN apk add --no-cache nodejs && \
-    addgroup -S appgroup && adduser -S appuser -G appgroup
-WORKDIR /app
-COPY --from=builder /app/node_modules ./node_modules
+# Stage 2: alpine + only the node binary (no npm, no compilers)
+FROM alpine:3.24.1
+RUN apk add --no-cache nodejs && adduser -S -u 10001 app
+WORKDIR /usr/src/app
+COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY . .
-USER appuser
+USER 10001
+# checkov:skip=CKV_DOCKER_2:no curl in the runtime image; health is checked by Kubernetes gRPC probes
 EXPOSE 7000
 ENTRYPOINT ["node", "server.js"]

@@ -1,21 +1,18 @@
-# Stage 1 — compile
-# golang:1.23-alpine has the Go compiler. alpine keeps it small.
-# $BUILDPLATFORM = your Mac's arch (arm64), so the compile runs fast natively.
-FROM --platform=$BUILDPLATFORM golang:1.23-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS builder
 WORKDIR /app
-# Copy deps first — Docker caches this layer; if source changes but deps don't, no re-download
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-# CGO_ENABLED=0 = pure Go binary, no C libs needed at runtime
-# GOOS/GOARCH = cross-compile for linux/amd64 (what GKE runs)
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /frontend .
+# Trivy: fix CVE-2026-78661 / CVE-2026-78669 in golang.org/x/net
+RUN go get golang.org/x/net@v0.62.0
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o frontend .
 
-# Stage 2 — runtime image
-# distroless has no shell, no package manager — smallest attack surface possible
 FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=builder /frontend /frontend
-# nonroot user is built into distroless (uid 65532)
+WORKDIR /app
+COPY --from=builder /app/frontend /app/frontend
+COPY --from=builder /app/templates /app/templates
+COPY --from=builder /app/static /app/static
 USER nonroot:nonroot
+# checkov:skip=CKV_DOCKER_2:distroless has no shell/curl; health is checked by Kubernetes HTTP probes
 EXPOSE 8080
-ENTRYPOINT ["/frontend"]
+ENTRYPOINT ["/app/frontend"]
