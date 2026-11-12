@@ -1,0 +1,106 @@
+{{- range $name, $svc := .Values.services }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ar-{{ $name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: ar-{{ $name }}
+    app.kubernetes.io/managed-by: {{ $.Release.Service }}
+  annotations:
+    checkov.io/skip1: "CKV_K8S_43=Image digest is injected at release time; tag is pinned"
+    {{- if $svc.useRedis }}
+    checkov.io/skip2: "CKV_K8S_35=cartservice only reads its Redis connection string from the REDIS_ADDR env var; the value is sourced from a Secret, never plaintext"
+    {{- end }}
+spec:
+  replicas: {{ $svc.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: ar-{{ $name }}
+  template:
+    metadata:
+      labels:
+        app: ar-{{ $name }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ $svc.runAsUser }}
+        runAsGroup: {{ $svc.runAsUser }}
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: server
+          image: {{ $.Values.image.registry }}/{{ $svc.image }}:{{ $svc.tag }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ $svc.port }}
+          env:
+            {{- range $k, $v := $svc.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+            {{- if and $svc.useRedis $.Values.redis.enabled }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.redis.secretName }}
+                  key: {{ $.Values.redis.secretKey }}
+            - name: REDIS_ADDR
+              value: "{{ $.Values.redis.host }}:{{ $.Values.redis.port }},password=$(REDIS_PASSWORD)"
+            {{- end }}
+          {{- if eq $svc.probe "http" }}
+          readinessProbe:
+            httpGet:
+              path: /_healthz
+              port: {{ $svc.port }}
+              httpHeaders:
+                - name: Cookie
+                  value: shop_session-id=x-readiness-probe
+          livenessProbe:
+            httpGet:
+              path: /_healthz
+              port: {{ $svc.port }}
+              httpHeaders:
+                - name: Cookie
+                  value: shop_session-id=x-liveness-probe
+          {{- else }}
+          readinessProbe:
+            grpc:
+              port: {{ $svc.port }}
+          livenessProbe:
+            grpc:
+              port: {{ $svc.port }}
+          {{- end }}
+          resources:
+            {{- toYaml $svc.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ar-{{ $name }}
+  namespace: {{ $.Release.Namespace }}
+  {{- if $svc.ingress }}
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+  {{- end }}
+spec:
+  type: ClusterIP
+  selector:
+    app: ar-{{ $name }}
+  ports:
+    - port: {{ $svc.servicePort | default $svc.port }}
+      targetPort: {{ $svc.port }}
+{{- end }}

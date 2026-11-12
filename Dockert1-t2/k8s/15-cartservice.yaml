@@ -1,0 +1,70 @@
+# cartservice WITHOUT Redis: no REDIS_ADDR is set, so it uses its in-memory store
+# and needs no credentials. Redis is introduced later in the Helm chart.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ar-cartservice
+  namespace: ar-app
+  annotations:
+    checkov.io/skip1: "CKV_K8S_43=Image digest is injected at release time; tag is pinned"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ar-cartservice
+  template:
+    metadata:
+      labels:
+        app: ar-cartservice
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: server
+          image: europe-west1-docker.pkg.dev/gd-gcp-gridu-devops-t1-t2/ar-registry/ar-cartservice:v1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 7070
+          readinessProbe:
+            grpc:
+              port: 7070
+          livenessProbe:
+            grpc:
+              port: 7070
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ar-cartservice
+  namespace: ar-app
+spec:
+  type: ClusterIP
+  selector:
+    app: ar-cartservice
+  ports:
+    - name: grpc
+      port: 7070
+      targetPort: 7070

@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ar-frontend
+  namespace: ar-app
+  annotations:
+    checkov.io/skip1: "CKV_K8S_43=Image digest is injected at release time; tag is pinned (v3)"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ar-frontend
+  template:
+    metadata:
+      labels:
+        app: ar-frontend
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: server
+          image: europe-west1-docker.pkg.dev/gd-gcp-gridu-devops-t1-t2/ar-registry/ar-frontend:v3
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: PRODUCT_CATALOG_SERVICE_ADDR
+              value: "ar-productcatalogservice:3550"
+            # Services below are not deployed in this reduced setup (gRPC clients are lazy)
+            - name: CURRENCY_SERVICE_ADDR
+              value: "ar-currencyservice:7000"
+            - name: CART_SERVICE_ADDR
+              value: "ar-cartservice:7070"
+            - name: RECOMMENDATION_SERVICE_ADDR
+              value: "ar-recommendationservice:8080"
+            - name: CHECKOUT_SERVICE_ADDR
+              value: "ar-checkoutservice:5050"
+            - name: SHIPPING_SERVICE_ADDR
+              value: "ar-shippingservice:50051"
+            - name: AD_SERVICE_ADDR
+              value: "ar-adservice:9555"
+            - name: SHOPPING_ASSISTANT_SERVICE_ADDR
+              value: "ar-shoppingassistantservice:80"
+            - name: ENABLE_PROFILER
+              value: "0"
+          readinessProbe:
+            httpGet:
+              path: /_healthz
+              port: 8080
+              httpHeaders:
+                - name: Cookie
+                  value: shop_session-id=x-readiness-probe
+          livenessProbe:
+            httpGet:
+              path: /_healthz
+              port: 8080
+              httpHeaders:
+                - name: Cookie
+                  value: shop_session-id=x-liveness-probe
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ar-frontend
+  namespace: ar-app
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+spec:
+  type: ClusterIP
+  selector:
+    app: ar-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080

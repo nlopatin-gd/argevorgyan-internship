@@ -1,18 +1,30 @@
-# .NET service — uses Microsoft's "chiseled" image (their distroless equivalent)
-# Stage 1 — build with full SDK
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS builder
-WORKDIR /app
-# Restore deps (separate layer = cached unless .csproj changes)
-COPY src/cartservice/*.csproj ./
-RUN dotnet restore
-COPY src/cartservice/ ./
-# PublishSingleFile=false, SelfContained=false = smaller image (runtime is in the base image)
-RUN dotnet publish -c Release -o /out
+ARG BUILDPLATFORM=linux/amd64
 
-# Stage 2 — chiseled = non-root, no shell, no package manager
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-noble-chiseled
+# Stage 1: build with the full .NET SDK, produce a self-contained trimmed binary
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0.100-noble AS builder
+ARG TARGETARCH=amd64
+# Workaround: the SDK can crash under QEMU/Rosetta emulation (MSB4184) without this
+ENV DOTNET_EnableWriteXorExecute=0
 WORKDIR /app
-COPY --from=builder /out .
-# chiseled images run as app (uid 1654) by default
+COPY cartservice.csproj .
+RUN dotnet restore cartservice.csproj -a $TARGETARCH
+COPY . .
+RUN dotnet publish cartservice.csproj \
+    -p:PublishSingleFile=true \
+    -a $TARGETARCH \
+    --self-contained true \
+    -p:PublishTrimmed=true \
+    -p:TrimMode=full \
+    -c release \
+    -o /cartservice
+
+# Stage 2: chiseled runtime-deps = Microsoft's distroless (no shell, no package manager)
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0.0-noble-chiseled
+WORKDIR /app
+COPY --from=builder /cartservice .
+ENV DOTNET_EnableDiagnostics=0 \
+    ASPNETCORE_HTTP_PORTS=7070
+USER 1000
+# checkov:skip=CKV_DOCKER_2:chiseled image has no shell/curl; health is checked by Kubernetes gRPC probes
 EXPOSE 7070
-ENTRYPOINT ["dotnet", "cartservice.dll"]
+ENTRYPOINT ["/app/cartservice"]

@@ -1,0 +1,19 @@
+# Values for: helm install ar-redis bitnami/redis -n ar-app -f redis-values.yaml --set image.digest=<sha256 of the running image>
+# No password here: it is read from the pre-created Secret ar-redis-secret.
+architecture: standalone
+
+auth:
+  enabled: true
+  existingSecret: ar-redis-secret
+  existingSecretPasswordKey: redis-password
+
+master:
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi

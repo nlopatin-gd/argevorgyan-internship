@@ -1,0 +1,3 @@
+# KSV-0125: images come from our own project Artifact Registry
+# (europe-west1-docker.pkg.dev/gd-gcp-gridu-devops-t1-t2/ar-registry), which is the trusted registry here.
+KSV-0125
